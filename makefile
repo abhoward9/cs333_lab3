@@ -3,6 +3,10 @@ CFLAGS = -Wall -Wextra -Wshadow -Wunreachable-code -Wredundant-decls \
          -Wdeclaration-after-statement -Wno-return-local-addr \
          -Wunsafe-loop-optimizations -Wuninitialized -Werror
 
+REMOTE := origin
+BRANCH := main
+MESSAGE := Automated commit of .c files from Makefile
+
 TARGET = ${LOGNAME}-Lab3
 FILES = *.c makefile
 TAR = $(TARGET).tar.gz
@@ -14,6 +18,12 @@ viktar: viktar.o
 	
 viktar.o: viktar.c
 	gcc $(CFLAGS) -c viktar.c
+
+
+push:
+	git add *.c makefile
+	git commit -m "$(MESSAGE)"
+	git push $(REMOTE) $(BRANCH)
 
 $(TAR): $(FILES)
 	tar -czvf $(TAR) $(FILES)
