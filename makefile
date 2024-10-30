@@ -5,7 +5,7 @@ CFLAGS = -Wall -Wextra -Wshadow -Wunreachable-code -Wredundant-decls \
 
 REMOTE := origin
 BRANCH := main
-MESSAGE := Automated commit of .c files from Makefile
+MESSAGE := Automated commit of C source code and makefile
 
 TARGET = ${LOGNAME}-Lab3
 FILES = *.c makefile
