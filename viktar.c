@@ -7,10 +7,14 @@
 #include <errno.h>
 
 #include <sys/types.h>
+#include <inttypes.h>
+
 #include <md5.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <grp.h>
+#include <time.h>
 #include "viktar.h"
 
 void display_help(void);
@@ -151,7 +155,6 @@ produced by my implementation of viktar.
 	case 'T':
 		show_ToC = true;
 		long_ToC = true;
-		printf("long table of contents");
 		break;
 /*Specify the name of the viktar file on which to operate.
 • If the -f command line option is not used, you will read/write
@@ -314,7 +317,9 @@ void showLongToC(char * filename) {
 
 	int iarch = STDIN_FILENO;
 	char buf[100] = {'\0'};
+    	char buff[100];
 	viktar_header_t md;
+	viktar_footer_t ft;
 	
 
 	if (filename != NULL ) {
@@ -332,32 +337,57 @@ void showLongToC(char * filename) {
 
 	// process the archive file metadata
 	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
-	//struct passwd *pw; 	// print archive member name
-	memset(buf, 0, 100);
-	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
-	printf("\tfile name: %s\n", buf);
-	memset(buf, 0, 100);
-    printf("    mode:           %o\n", md.st_mode & 0777);
-/*
-	pw = getpwuid(md.st_uid);  // Look up the user information
+		struct passwd *pw; 	// print archive member name
+		struct group *grp; 	// print archive member name
+		//struct timespec ts;
+		memset(buf, 0, 100);
+		strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
+		printf("\tfile name: %s\n", buf);
+    		printf("\t\tmode:\t\t%o\n", md.st_mode & 0777);
+		pw = getpwuid(md.st_uid);  // Look up the user information	
+    		if (pw) {
+    			printf("\t\tuser:\t\t%s\n", pw->pw_name);
+        	//printf("Username: %s\n", pw->pw_name);  // Print the username
+    		} else {
+        		perror("getpwuid");  // Error handling if the UID is not found
+    		}
 
-    if (pw) {
-        printf("Username: %s\n", pw->pw_name);  // Print the username
-    } else {
-        perror("getpwuid");  // Error handling if the UID is not found
+		grp = getgrgid(md.st_gid);  // Look up the user information	
+    		if (grp) {
+    			printf("\t\tgroup:\t\t%s\n", grp->gr_name);
+        	//printf("Username: %s\n", pw->pw_name);  // Print the username
+    		} else {
+        		perror("getpwuid");  // Error handling if the UID is not found
     }
-*/
-    printf("    user:           %u\n", md.st_uid);
 /*
-    printf("    group:          %s\n", file.group);
-    printf("    size:           %d\n", file.size);
-    printf("    mtime:          %s\n", file.mtime);
-    printf("    atime:          %s\n", file.atime);
     printf("    md5 sum header: %s\n", file.md5Header);
     printf("    md5 sum data:   %s\n\n", file.md5Data);
 */
-	printf("\tsize: %ld\n", md.st_size);
-	//lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
+	printf("\t\tsize:\t\t\%ld\n", md.st_size);
+
+    //timespec_get(&md.st_atim, TIME_UTC);
+    	strftime(buff, sizeof buff, "%Y-%m-%d %H:%M:%S %Z", localtime(&md.st_mtim.tv_sec));
+    	printf("\t\tmtime:\t\t%s\n", buff);
+    	strftime(buff, sizeof buff, "%Y-%m-%d %H:%M:%S %Z", localtime(&md.st_atim.tv_sec));
+    	printf("\t\tatime:\t\t%s\n", buff);
+
+	lseek(iarch, md.st_size, SEEK_CUR);
+	if (read(iarch, &ft, sizeof(viktar_footer_t )) > 0) {
+printf("\t\tmd5 sum header:\t");
+    for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        printf("%02" PRIx8, ft.md5sum_header[i]);
+    }
+    printf("\n");
+
+printf("\t\tmd5 sum data:\t");
+    for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        printf("%02" PRIx8, ft.md5sum_data[i]);
+    }
+    printf("\n");
+	}
+
+
+
 	}
 
 
