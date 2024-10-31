@@ -10,17 +10,35 @@
 #include <md5.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <pwd.h>
 #include "viktar.h"
 
 void display_help(void);
 void read_viktar(char *);
-void toc(void);
-struct Person {
-    char name[50];
-    int age;
-    float height;
-};
+void toc(char * goodTest);
+void showLongToC(char * goodTest);
 void writeToFile(viktar_header_t person, const char *filename);
+void readFile(const char *filename);
+void readFile(const char *filename) {
+	char test[50];	
+    //int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        perror("Failed to open file");
+        exit(1);
+    }
+
+    // Write the data directly in binary format
+    if (read(fd, test, 10)) {
+	printf("%s", test);
+        close(fd);
+        exit(1);
+    }
+
+    close(fd);
+
+
+}
 void writeToFile(viktar_header_t person, const char *filename) {
     int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd == -1) {
@@ -29,7 +47,7 @@ void writeToFile(viktar_header_t person, const char *filename) {
     }
 
     // Write the data directly in binary format
-    if (write(fd, &person, sizeof(struct Person)) == -1) {
+    if (write(fd, &person, sizeof(viktar_header_t)) == -1) {
         perror("Failed to write to file");
         close(fd);
         exit(1);
@@ -41,6 +59,8 @@ int main(int argc, char **argv)
 {
     int opt;
 	char str[1000];
+	bool show_ToC = false;
+	bool long_ToC = false;
 /*
     char input[100];
     bool doEncrypt = true;
@@ -49,10 +69,20 @@ int main(int argc, char **argv)
     int base;
     char *endptr;
 */
-	viktar_header_t test_data = {"Alice", 25, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH, 2, 2, {3, 3}, {4,4}};
+	//viktar_header_t test_data = {"Alice", 25, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH, 2, 2, {3, 3}, {4,4}};
 
     // Write the structure to the file
-    writeToFile(test_data, "person.dat");
+
+    //writeToFile(test_data, "person.dat");
+
+	//readFile("goodTest");
+
+
+
+
+
+
+
 
     while ((opt = getopt(argc, argv, OPTIONS)) != -1)
     {
@@ -108,11 +138,8 @@ produced by my implementation of viktar.
 • Look at the output of my solution for the format of he output.
 */
         case 't':
-		
-            {
-                perror("strtol");
-                exit(EXIT_FAILURE);
-            }
+		show_ToC = true;
+		long_ToC = false;		
 
             break;
 /*Long table of contents.
@@ -122,6 +149,8 @@ produced by my implementation of viktar.
 • Look at the output of my solution for the format of he output.
 */
 	case 'T':
+		show_ToC = true;
+		long_ToC = true;
 		printf("long table of contents");
 		break;
 /*Specify the name of the viktar file on which to operate.
@@ -135,9 +164,8 @@ stdio as necessary for the operation.*/
               }
               else
               {
-//printf("specify filename");
                   strcpy(str, optarg);
-		read_viktar(str);
+		//read_viktar(str);
               }
               break;
   
@@ -168,15 +196,199 @@ stderr, NOT stdout. Do not comingle output and
 diagnostics.
 */
 	case 'v':
-		printf("verbose processing");
+		//printf("verbose processing");
 		break;
         default:
             abort();
         }
     }
 
+	if (show_ToC) {
+		if(long_ToC) {
+			showLongToC(str);
+		} else {
+			toc(str);
+
+		}	
+	}
 	return EXIT_SUCCESS;
 }
+
+
+
+
+
+void display_help(void) {
+printf("help text\n");
+    printf("\tUsage: ./viktar [OPTIONS]\n");
+    printf("\tOptions: xctTf:Vhv\n");
+    printf("  -x           extract file/files from archive\n");
+    printf("  -c           create an archive file\n");
+    printf("  -t           display a short table of contents of the archive file\n");
+    printf("  -T           display a long table of contents of the archive file\n");
+    printf("               Only one of xctTV can be specified\n");
+    printf("  -f filename  use filename as the archive file\n");
+    printf("  -V           validate the MD5 values in the viktar file\n");
+    printf("  -v           give verbose diagnostic messages\n");
+    printf("  -h           display this AMAZING help message\n");
+}
+
+
+
+void read_viktar(char* filename) {
+	int iarch = STDIN_FILENO;
+	char buf[100] = {'\0'};
+	viktar_header_t md;
+	
+
+	if (filename != NULL ) {
+		iarch = open(filename, O_RDONLY);
+	}
+	// validate tag
+	read(iarch, buf, strlen(VIKTAR_TAG));
+	if(strncmp(buf, VIKTAR_TAG, strlen(VIKTAR_TAG)) != 0) {
+	// not a valid viktar file
+	// print snarky message and exit(1).
+		fprintf(stderr, "snarky message\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
+
+	// process the archive file metadata
+	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
+		// print archive member name
+	memset(buf, 0, 100);
+	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
+	printf("\tfile name: %s\n", buf);
+	lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
+	}
+
+
+
+		if (filename != NULL ) {
+		close(iarch);
+		}
+
+
+}
+
+void toc(char * filename) {
+
+	int iarch = STDIN_FILENO;
+	char buf[100] = {'\0'};
+	viktar_header_t md;
+	
+
+	if (filename != NULL ) {
+		iarch = open(filename, O_RDONLY);
+	}
+	// validate tag
+	read(iarch, buf, strlen(VIKTAR_TAG));
+	if(strncmp(buf, VIKTAR_TAG, strlen(VIKTAR_TAG)) != 0) {
+	// not a valid viktar file
+	// print snarky message and exit(1).
+		fprintf(stderr, "snarky message\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
+
+	// process the archive file metadata
+	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
+		// print archive member name
+	memset(buf, 0, 100);
+	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
+	printf("\tfile name: %s\n", buf);
+	lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
+	}
+
+
+
+		if (filename != NULL ) {
+		close(iarch);
+		}
+
+}
+
+
+void showLongToC(char * filename) {
+
+	int iarch = STDIN_FILENO;
+	char buf[100] = {'\0'};
+	viktar_header_t md;
+	
+
+	if (filename != NULL ) {
+		iarch = open(filename, O_RDONLY);
+	}
+	// validate tag
+	read(iarch, buf, strlen(VIKTAR_TAG));
+	if(strncmp(buf, VIKTAR_TAG, strlen(VIKTAR_TAG)) != 0) {
+	// not a valid viktar file
+	// print snarky message and exit(1).
+		fprintf(stderr, "snarky message\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
+
+	// process the archive file metadata
+	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
+	//struct passwd *pw; 	// print archive member name
+	memset(buf, 0, 100);
+	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
+	printf("\tfile name: %s\n", buf);
+	memset(buf, 0, 100);
+    printf("    mode:           %o\n", md.st_mode & 0777);
+/*
+	pw = getpwuid(md.st_uid);  // Look up the user information
+
+    if (pw) {
+        printf("Username: %s\n", pw->pw_name);  // Print the username
+    } else {
+        perror("getpwuid");  // Error handling if the UID is not found
+    }
+*/
+    printf("    user:           %u\n", md.st_uid);
+/*
+    printf("    group:          %s\n", file.group);
+    printf("    size:           %d\n", file.size);
+    printf("    mtime:          %s\n", file.mtime);
+    printf("    atime:          %s\n", file.atime);
+    printf("    md5 sum header: %s\n", file.md5Header);
+    printf("    md5 sum data:   %s\n\n", file.md5Data);
+*/
+	printf("\tsize: %ld\n", md.st_size);
+	//lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
+	}
+
+
+
+		if (filename != NULL ) {
+		close(iarch);
+		}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -232,77 +444,3 @@ diagnostics.
 }
 
 */
-
-void display_help(void) {
-    printf("Usage: ./viktar [OPTIONS]\n");
-    printf("Options: xctTf:Vhv\n");
-    printf("  -x           extract file/files from archive\n");
-    printf("  -c           create an archive file\n");
-    printf("  -t           display a short table of contents of the archive file\n");
-    printf("  -T           display a long table of contents of the archive file\n");
-    printf("               Only one of xctTV can be specified\n");
-    printf("  -f filename  use filename as the archive file\n");
-    printf("  -V           validate the MD5 values in the viktar file\n");
-    printf("  -v           give verbose diagnostic messages\n");
-    printf("  -h           display this AMAZING help message\n");
-}
-
-
-
-void read_viktar(char* filename) {
-	int iarch = STDIN_FILENO;
-	printf("file descriptor: %d", iarch);
-	//char buf[100] = {'\0'};
-	printf("%s", filename);
-
-	if (filename != NULL ) {
-		iarch = open(filename, O_RDONLY);
-	}
-	printf("file descriptor: %d", iarch);
-
-}
-
-void toc(void) {
-
-	char *filename = NULL;
-	int iarch = STDIN_FILENO;
-	char buf[100] = {'\0'};
-	viktar_header_t md;
-
-	if (filename != NULL ) {
-		iarch = open(filename, O_RDONLY);
-	}
-	// validate tag
-	read(iarch, buf, strlen(VIKTAR_TAG));
-	if(strncmp(buf, VIKTAR_TAG, strlen(VIKTAR_TAG)) != 0) {
-	// not a valid viktar file
-	// print snarky message and exit(1).
-		fprintf(stderr, "snarky message\n");
-		exit(EXIT_FAILURE);
-	}
-
-	// process the archive file metadata
-	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
-		// print archive member name
-	}
-	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
-	memset(buf, 0, 100);
-	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
-	printf("\tfile name: %s\n", buf);
-
-
-	// process the archive file metadata
-	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
-	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
-	// print archive member name
-		memset(buf, 0, 100);
-		strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
-		printf("\tfile name: %s\n", buf);
-	}
-	lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
-
-		if (filename != NULL ) {
-		close(iarch);
-		}
-
-}
