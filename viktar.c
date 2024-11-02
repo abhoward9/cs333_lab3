@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <inttypes.h>
 
@@ -21,8 +22,134 @@ void display_help(void);
 void read_viktar(char *);
 void toc(char * goodTest);
 void showLongToC(char * goodTest);
+void createArchive(char * filename);
 void writeToFile(viktar_header_t person, const char *filename);
 void readFile(const char *filename);
+
+
+void createArchive(char * archFilename) {
+	int oarch = STDOUT_FILENO;
+	//char buf[100] = {'\0'};
+	//viktar_header_t md;
+	
+	archFilename = NULL;
+
+	if (archFilename != NULL ) {
+		oarch = open(archFilename, O_RDONLY);
+
+	}
+    	if (write(oarch, VIKTAR_TAG, sizeof(VIKTAR_TAG)-1) == -1) {
+       		perror("Failed to write to file");
+        	close(oarch);
+        	exit(1);
+    	}
+//	int iarch = STDIN_FILENO;
+	//printf("standard in?: %x\n", iarch);
+	//viktar_header_t test_data; 	
+           //struct stat sb;
+/*
+	if (strlen(archFilename) < 1) {
+    		iarch = open(archFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		perror("no filename given");
+	}
+*/
+	
+
+/*
+    if (write(iarch, &test_data, sizeof(viktar_header_t)) == -1) {
+        perror("Failed to write to file");
+        close(iarch);
+        exit(1);
+    }
+*/
+
+    close(oarch);
+
+
+           exit(EXIT_SUCCESS);
+       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+           if (lstat(filename, &sb) == -1) {
+               perror("lstat");
+               exit(EXIT_FAILURE);
+           }
+
+
+           printf("File type:                ");
+
+           switch (sb.st_mode & S_IFMT) {
+           case S_IFBLK:  printf("block device\n");            break;
+           case S_IFCHR:  printf("character device\n");        break;
+           case S_IFDIR:  printf("directory\n");               break;
+           case S_IFIFO:  printf("FIFO/pipe\n");               break;
+           case S_IFLNK:  printf("symlink\n");                 break;
+           case S_IFREG:  printf("regular file\n");            break;
+           case S_IFSOCK: printf("socket\n");                  break;
+           default:       printf("unknown?\n");                break;
+           }
+	
+	//printf("I-node number:            %ju\n", (uintmax_t) sb.st_ino);
+
+strcpy(test_data.viktar_name, filename);
+test_data.st_size = sb.st_size;
+test_data.st_mode = sb.st_mode;
+test_data.st_uid = sb.st_uid;
+test_data.st_gid = sb.st_gid;
+memcpy(&test_data.st_atim, &sb.st_atime, sizeof(struct timespec));
+memcpy(&test_data.st_mtim, &sb.st_mtime, sizeof(struct timespec));
+           printf("Mode:                     %jo (octal)\n",
+                  (uintmax_t) test_data.st_mode);
+
+           printf("Ownership:                UID=%ju   GID=%ju\n",
+                  (uintmax_t) test_data.st_uid, (uintmax_t) test_data.st_gid);
+
+           printf("File size:                %jd bytes\n",
+                  (intmax_t) test_data.st_size);
+           printf("Blocks allocated:         %jd\n",
+                  (intmax_t) sb.st_blocks);
+
+           printf("Last status change:       %s", ctime(&sb.st_ctime));
+           printf("Last file access:         %s", ctime(&test_data.st_atime));
+           printf("Last file modification:   %s", ctime(&sb.st_mtime));
+
+*/
+
+
+	
+/*	
+    if (write(iarch, &VIKTAR_TAG, sizeof(char)*strlen(VIKTAR_TAG)) == -1) {
+        perror("Failed to write to file");
+        close(iarch);
+        exit(1);
+    }
+}
+*/
+
+
+
+
+
+
+
+
 
 
 void readFile(const char *filename) {
@@ -49,7 +176,8 @@ int main(int argc, char **argv)
 {
     int opt;
 	viktar_action_t action;
-	char str[1000];
+	char str[1000] = {'\0'};
+	char archiveFilename[1000] = {'\0'};
 	//bool show_ToC = false;
 	//bool long_ToC = false;
 /*
@@ -100,7 +228,7 @@ the file anyway.
 • If the extracted file already exists, overwrite it.
 */
         case 'x':
-		printf("extract");		
+		action = ACTION_EXTRACT;
             break;
 /*Create a viktar style archive file.
 • The names of the files to place in the archive are given on the
@@ -145,7 +273,6 @@ stdio as necessary for the operation.*/
               }
               break;
   
-		break;	
 /*
 	Validate the content of the archive member with the CRC values
 stored in the archive file.
@@ -183,6 +310,7 @@ diagnostics.
             printf("No action selected.\n");
             break;
         case ACTION_CREATE:
+		createArchive(archiveFilename);
             break;
         case ACTION_EXTRACT:
             printf("Performing extract action.\n");
@@ -276,7 +404,7 @@ void toc(char * filename) {
 	// not a valid viktar file
 	// print snarky message and exit(1).
 		fprintf(stderr, "snarky message\n");
-		exit(EXIT_SUCCESS);
+		exit(1);
 	}
 	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
 
@@ -342,7 +470,7 @@ void showLongToC(char * filename) {
 	// not a valid viktar file
 	// print snarky message and exit(1).
 		fprintf(stderr, "snarky message\n");
-		exit(EXIT_SUCCESS);
+		exit(1);
 	}
 	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
 
