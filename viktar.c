@@ -23,6 +23,8 @@ void toc(char * goodTest);
 void showLongToC(char * goodTest);
 void writeToFile(viktar_header_t person, const char *filename);
 void readFile(const char *filename);
+
+
 void readFile(const char *filename) {
 	char test[50];	
     //int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -43,28 +45,13 @@ void readFile(const char *filename) {
 
 
 }
-void writeToFile(viktar_header_t person, const char *filename) {
-    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd == -1) {
-        perror("Failed to open file");
-        exit(1);
-    }
-
-    // Write the data directly in binary format
-    if (write(fd, &person, sizeof(viktar_header_t)) == -1) {
-        perror("Failed to write to file");
-        close(fd);
-        exit(1);
-    }
-
-    close(fd);
-}
 int main(int argc, char **argv)
 {
     int opt;
+	viktar_action_t action;
 	char str[1000];
-	bool show_ToC = false;
-	bool long_ToC = false;
+	//bool show_ToC = false;
+	//bool long_ToC = false;
 /*
     char input[100];
     bool doEncrypt = true;
@@ -133,28 +120,14 @@ umask.
 • If the archive file already exists, overwrite it.
 */
         case 'c':
-		printf("create");
+		action = ACTION_CREATE;
             break;
-/*Short table of contents.
-• Your short table of contents must match exactly the one
-produced by my implementation of viktar.
-• If the -f option is not used, read the archive file from stdin.
-• Look at the output of my solution for the format of he output.
-*/
         case 't':
-		show_ToC = true;
-		long_ToC = false;		
+		action = ACTION_TOC_SHORT;
 
             break;
-/*Long table of contents.
-• Your long table of contents must match exactly the one
-produced by my implementation of viktar.
-• If the -f option is not used, read the archive file from stdin.
-• Look at the output of my solution for the format of he output.
-*/
 	case 'T':
-		show_ToC = true;
-		long_ToC = true;
+		action = ACTION_TOC_LONG;
 		break;
 /*Specify the name of the viktar file on which to operate.
 • If the -f command line option is not used, you will read/write
@@ -182,7 +155,7 @@ implementation of viktar.
 Look at the output of my solution for the format of the output.
 */
 	case 'V':
-		printf("Validate the content");
+		//printf("Validate the content");
 		break;
 //Show the help text and exit. Your help text must match mine.
 	case 'h':
@@ -199,21 +172,34 @@ stderr, NOT stdout. Do not comingle output and
 diagnostics.
 */
 	case 'v':
-		//printf("verbose processing");
+		perror("verbose is enabled");
 		break;
         default:
             abort();
         }
     }
-
-	if (show_ToC) {
-		if(long_ToC) {
+    switch(action) {
+        case ACTION_NONE:
+            printf("No action selected.\n");
+            break;
+        case ACTION_CREATE:
+            break;
+        case ACTION_EXTRACT:
+            printf("Performing extract action.\n");
+            break;
+        case ACTION_TOC_SHORT:
+		toc(str);
+            break;
+        case ACTION_TOC_LONG:
 			showLongToC(str);
-		} else {
-			toc(str);
-
-		}	
-	}
+            break;
+        case ACTION_VALIDATE:
+            printf("Performing validation.\n");
+            break;
+        default:
+            printf("Unknown action.\n");
+            break;
+    }
 	return EXIT_SUCCESS;
 }
 
@@ -237,7 +223,7 @@ printf("help text\n");
 }
 
 
-
+/*
 void read_viktar(char* filename) {
 	int iarch = STDIN_FILENO;
 	char buf[100] = {'\0'};
@@ -273,10 +259,9 @@ void read_viktar(char* filename) {
 		}
 
 
-}
+}*/
 
 void toc(char * filename) {
-
 	int iarch = STDIN_FILENO;
 	char buf[100] = {'\0'};
 	viktar_header_t md;
@@ -291,7 +276,7 @@ void toc(char * filename) {
 	// not a valid viktar file
 	// print snarky message and exit(1).
 		fprintf(stderr, "snarky message\n");
-		exit(EXIT_FAILURE);
+		exit(EXIT_SUCCESS);
 	}
 	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
 
@@ -309,15 +294,41 @@ void toc(char * filename) {
 		if (filename != NULL ) {
 		close(iarch);
 		}
-
 }
 
+
+
+
+
+
+
+
+
+
+void writeToFile(viktar_header_t person, const char *filename) {
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1) {
+        perror("Failed to open file");
+        exit(1);
+    }
+
+    // Write the data directly in binary format
+    if (write(fd, &person, sizeof(viktar_header_t)) == -1) {
+        perror("Failed to write to file");
+        close(fd);
+        exit(1);
+    }
+
+    close(fd);
+
+
+}
 
 void showLongToC(char * filename) {
 
 	int iarch = STDIN_FILENO;
 	char buf[100] = {'\0'};
-    	char buff[100];
+    	char buff[100] = {'\0'};
 	viktar_header_t md;
 	viktar_footer_t ft;
 	
@@ -331,7 +342,7 @@ void showLongToC(char * filename) {
 	// not a valid viktar file
 	// print snarky message and exit(1).
 		fprintf(stderr, "snarky message\n");
-		exit(EXIT_FAILURE);
+		exit(EXIT_SUCCESS);
 	}
 	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
 
@@ -339,11 +350,12 @@ void showLongToC(char * filename) {
 	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
 		struct passwd *pw; 	// print archive member name
 		struct group *grp; 	// print archive member name
+		mode_t fileMode = md.st_mode; //& 0777;
 		//struct timespec ts;
 		memset(buf, 0, 100);
 		strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
 		printf("\tfile name: %s\n", buf);
-    		printf("\t\tmode:\t\t%o\n", md.st_mode & 0777);
+    		printf("\t\tmode:\t\t%o\n", fileMode);
 		pw = getpwuid(md.st_uid);  // Look up the user information	
     		if (pw) {
     			printf("\t\tuser:\t\t%s\n", pw->pw_name);
@@ -410,67 +422,3 @@ printf("\t\tmd5 sum data:\t");
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-    if (shift < 0 || shift > 96)
-    {
-        perror("Shift value must be between 0 and 96");
-        exit(EXIT_FAILURE);
-    }
-    while (fgets(input, sizeof(input), stdin) != NULL)
-    {
-        size_t len = strlen(input);
-        if (len > 0 && input[len - 1] == '\n')
-        {
-            input[len - 1] = '\0';
-        }
-
-        // Output the stored string
-
-        for (int i = 0; input[i] != '\0'; i++)
-        {
-            int shiftModifier;
-            if (doEncrypt)
-            {
-                shiftModifier = 1;
-            }
-            else
-            {
-                shiftModifier = -1;
-            }
-            if (isprint(input[i]))
-            {
-                shiftedResult = input[i] + (shift * shiftModifier);
-                if (shiftedResult > 126)
-                {
-                    shiftedResult -= 95;
-                }
-                else if (shiftedResult < 32)
-                {
-                    shiftedResult += 95;
-                }
-                input[i] = shiftedResult;
-
-                printf("%c", input[i]);
-            }
-        }
-        printf("\n");
-    }
-
-    return 0;
-}
-
-*/

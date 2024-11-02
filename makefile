@@ -29,4 +29,4 @@ $(TAR): $(FILES)
 	tar -czvf $(TAR) $(FILES)
 
 clean cls:
-	rm -f $(TAR) *.o *.err *.out all *~ \#*
+	rm -f $(TAR) *.o all *~ \#*
