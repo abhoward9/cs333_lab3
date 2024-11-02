@@ -25,15 +25,27 @@ void showLongToC(char * goodTest);
 void createArchive(char * filename);
 void writeToFile(viktar_header_t person, const char *filename);
 void readFile(const char *filename);
+void strmode(mode_t mode, char * buf);
 
 
 void createArchive(char * archFilename) {
 	int oarch = STDOUT_FILENO;
+	//int iarch = STDIN_FILENO;
+          struct stat sb;
+	viktar_header_t test_data; 	
 	//char buf[100] = {'\0'};
 	//viktar_header_t md;
 	
+    char *filenames[] = {
+        "0-s.txt",
+        "1-s.txt",
+        "2-s.txt",
+        "3-s.txt",
+        "4-s.txt",
+        "5-s.txt",
+        "6-s.txt"
+    };
 	archFilename = NULL;
-
 	if (archFilename != NULL ) {
 		oarch = open(archFilename, O_RDONLY);
 
@@ -43,10 +55,64 @@ void createArchive(char * archFilename) {
         	close(oarch);
         	exit(1);
     	}
-//	int iarch = STDIN_FILENO;
-	//printf("standard in?: %x\n", iarch);
-	//viktar_header_t test_data; 	
-           //struct stat sb;
+
+for (int i = 0; i < 7; i++) {
+        printf("Filename %d: %s\n", i + 1, filenames[i]);
+	
+	
+           if (lstat(filenames[i], &sb) == -1) {
+               perror("lstat");
+               exit(EXIT_FAILURE);
+           }
+
+
+           //printf("File type:                ");
+/*
+           switch (sb.st_mode & S_IFMT) {
+           case S_IFBLK:  printf("block device\n");            break;
+           case S_IFCHR:  printf("character device\n");        break;
+           case S_IFDIR:  printf("directory\n");               break;
+           case S_IFIFO:  printf("FIFO/pipe\n");               break;
+           case S_IFLNK:  printf("symlink\n");                 break;
+           case S_IFREG:  printf("regular file\n");            break;
+           case S_IFSOCK: printf("socket\n");                  break;
+           default:       printf("unknown?\n");                break;
+           }
+*/
+	
+	//printf("I-node number:            %ju\n", (uintmax_t) sb.st_ino);
+
+strcpy(test_data.viktar_name, filenames[i]);
+test_data.st_size = sb.st_size;
+test_data.st_mode = sb.st_mode;
+test_data.st_uid = sb.st_uid;
+test_data.st_gid = sb.st_gid;
+memcpy(&test_data.st_atim, &sb.st_atime, sizeof(struct timespec));
+memcpy(&test_data.st_mtim, &sb.st_mtime, sizeof(struct timespec));
+
+    if (write(oarch, &test_data, sizeof(viktar_header_t)) == -1) {
+        perror("Failed to write to file");
+        close(oarch);
+        exit(1);
+    }
+/*
+           printf("Mode:                     %jo (octal)\n",
+                  (uintmax_t) test_data.st_mode);
+
+           printf("Ownership:                UID=%ju   GID=%ju\n",
+                  (uintmax_t) test_data.st_uid, (uintmax_t) test_data.st_gid);
+
+           printf("File size:                %jd bytes\n",
+                  (intmax_t) test_data.st_size);
+           printf("Blocks allocated:         %jd\n",
+                  (intmax_t) sb.st_blocks);
+
+           printf("Last status change:       %s", ctime(&sb.st_ctime));
+           printf("Last file access:         %s", ctime(&test_data.st_atime));
+           printf("Last file modification:   %s", ctime(&sb.st_mtime));
+
+*/
+    }
 /*
 	if (strlen(archFilename) < 1) {
     		iarch = open(archFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -56,11 +122,6 @@ void createArchive(char * archFilename) {
 	
 
 /*
-    if (write(iarch, &test_data, sizeof(viktar_header_t)) == -1) {
-        perror("Failed to write to file");
-        close(iarch);
-        exit(1);
-    }
 */
 
     close(oarch);
@@ -85,52 +146,6 @@ void createArchive(char * archFilename) {
 
 
 
-
-/*
-           if (lstat(filename, &sb) == -1) {
-               perror("lstat");
-               exit(EXIT_FAILURE);
-           }
-
-
-           printf("File type:                ");
-
-           switch (sb.st_mode & S_IFMT) {
-           case S_IFBLK:  printf("block device\n");            break;
-           case S_IFCHR:  printf("character device\n");        break;
-           case S_IFDIR:  printf("directory\n");               break;
-           case S_IFIFO:  printf("FIFO/pipe\n");               break;
-           case S_IFLNK:  printf("symlink\n");                 break;
-           case S_IFREG:  printf("regular file\n");            break;
-           case S_IFSOCK: printf("socket\n");                  break;
-           default:       printf("unknown?\n");                break;
-           }
-	
-	//printf("I-node number:            %ju\n", (uintmax_t) sb.st_ino);
-
-strcpy(test_data.viktar_name, filename);
-test_data.st_size = sb.st_size;
-test_data.st_mode = sb.st_mode;
-test_data.st_uid = sb.st_uid;
-test_data.st_gid = sb.st_gid;
-memcpy(&test_data.st_atim, &sb.st_atime, sizeof(struct timespec));
-memcpy(&test_data.st_mtim, &sb.st_mtime, sizeof(struct timespec));
-           printf("Mode:                     %jo (octal)\n",
-                  (uintmax_t) test_data.st_mode);
-
-           printf("Ownership:                UID=%ju   GID=%ju\n",
-                  (uintmax_t) test_data.st_uid, (uintmax_t) test_data.st_gid);
-
-           printf("File size:                %jd bytes\n",
-                  (intmax_t) test_data.st_size);
-           printf("Blocks allocated:         %jd\n",
-                  (intmax_t) sb.st_blocks);
-
-           printf("Last status change:       %s", ctime(&sb.st_ctime));
-           printf("Last file access:         %s", ctime(&test_data.st_atime));
-           printf("Last file modification:   %s", ctime(&sb.st_mtime));
-
-*/
 
 
 	
@@ -447,6 +462,7 @@ void writeToFile(viktar_header_t person, const char *filename) {
         exit(1);
     }
 
+
     close(fd);
 
 
@@ -478,12 +494,14 @@ void showLongToC(char * filename) {
 	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
 		struct passwd *pw; 	// print archive member name
 		struct group *grp; 	// print archive member name
+		char modeBuf[11] = {'\0'};
 		mode_t fileMode = md.st_mode; //& 0777;
+		strmode(fileMode, modeBuf);
 		//struct timespec ts;
 		memset(buf, 0, 100);
 		strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
 		printf("\tfile name: %s\n", buf);
-    		printf("\t\tmode:\t\t%o\n", fileMode);
+    		printf("\t\tmode:\t\t%s\n", modeBuf);
 		pw = getpwuid(md.st_uid);  // Look up the user information	
     		if (pw) {
     			printf("\t\tuser:\t\t%s\n", pw->pw_name);
@@ -541,8 +559,13 @@ printf("\t\tmd5 sum data:\t");
 
 
 
-
-
+void strmode(mode_t mode, char * buf) {
+  const char chars[] = "-rwxrwxrwx";
+  for (size_t i = 0; i < 10; i++) {
+    buf[i] = (mode & (1 << (9-i))) ? chars[i] : '-';
+  }
+  buf[10] = '\0';
+}
 
 
 
