@@ -26,6 +26,7 @@ void createArchive(char * filename);
 void writeToFile(viktar_header_t person, const char *filename);
 void readFile(const char *filename);
 void strmode(mode_t mode, char * buf);
+void compute_md5(const MyStruct *obj, unsigned char output[MD5_DIGEST_LENGTH]);
 
 
 void createArchive(char * archFilename) {
@@ -33,6 +34,7 @@ void createArchive(char * archFilename) {
 	//int iarch = STDIN_FILENO;
           struct stat sb;
 	viktar_header_t test_data; 	
+	viktar_fooder_t footer_data;
 	//char buf[100] = {'\0'};
 	//viktar_header_t md;
 	
@@ -95,6 +97,8 @@ memcpy(&test_data.st_mtim, &sb.st_mtime, sizeof(struct timespec));
         close(oarch);
         exit(1);
     }
+
+	void compute_md5(&test_data, footer_data.md5sum_header);
 /*
            printf("Mode:                     %jo (octal)\n",
                   (uintmax_t) test_data.st_mode);
@@ -568,7 +572,12 @@ void strmode(mode_t mode, char * buf) {
 }
 
 
-
+void compute_md5(const MyStruct *obj, unsigned char output[MD5_DIGEST_LENGTH]) {
+    MD5_CTX md5_ctx;
+    MD5_Init(&md5_ctx);
+    MD5_Update(&md5_ctx, obj, sizeof(MyStruct));  // Update with the serialized structure
+    MD5_Final(output, &md5_ctx);                  // Finalize the MD5 hash
+}
 
 
 
