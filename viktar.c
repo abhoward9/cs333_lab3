@@ -31,6 +31,7 @@ void showLongToC(char * goodTest);
 void createArchive(char * filename);
 void writeToFile(viktar_header_t person, const char *filename);
 void readFile(const char *filename);
+void extractFile(const char *filename);
 void strmode(mode_t mode, char * buf);
 void compute_md5(char * filename, uint8_t * digest);
 void compute_data_md5(viktar_header_t *header, unsigned char *output);
@@ -193,7 +194,7 @@ optCount++;
 		createArchive(archiveFilename);
             break;
         case ACTION_EXTRACT:
-            printf("Performing extract action.\n");
+		extractFile(archiveFilename);
             break;
         case ACTION_TOC_SHORT:
 		toc(archiveFilename);
@@ -231,43 +232,6 @@ printf("help text\n");
 }
 
 
-/*
-void read_viktar(char* filename) {
-	int iarch = STDIN_FILENO;
-	char buf[100] = {'\0'};
-	viktar_header_t md;
-	
-
-	if (filename != NULL ) {
-		iarch = open(filename, O_RDONLY);
-	}
-	// validate tag
-	read(iarch, buf, strlen(VIKTAR_TAG));
-	if(strncmp(buf, VIKTAR_TAG, strlen(VIKTAR_TAG)) != 0) {
-	// not a valid viktar file
-	// print snarky message and exit(1).
-		fprintf(stderr, "snarky message\n");
-		exit(EXIT_FAILURE);
-	}
-	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
-
-	// process the archive file metadata
-	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
-		// print archive member name
-	memset(buf, 0, 100);
-	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
-	printf("\tfile name: %s\n", buf);
-	lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
-	}
-
-
-
-		if (filename != NULL ) {
-		close(iarch);
-		}
-
-
-}*/
 
 void toc(char * filename) {
 	int iarch = STDIN_FILENO;
@@ -530,7 +494,7 @@ printf("%s", archiveFilename);
 
 	for (int i = 0; i < 4; i++) {
     	uint8_t digest[MD5_DIGEST_LENGTH];
-    char readBuffer[header.st_size]; // Buffer to hold the read data
+    /*char readBuffer[header.st_size]; // Buffer to hold the read data
 ssize_t bytesRead;
 
     // Open the file for reading
@@ -550,7 +514,7 @@ ssize_t bytesRead;
 
     // Print the read content
     printf("Read from file: %s", readBuffer);
-	
+*/	
            if (lstat(filenames[i], &sb) == -1) {
                perror("lstat");
                exit(EXIT_FAILURE);
@@ -710,3 +674,65 @@ void readFile(const char *filename) {
 
 
 }
+
+
+
+void extractFile(const char *filename) {
+	char test[strlen(filename)];	
+    //int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int fd = open(filename, O_RDONLY);
+printf("filename: %lu", strlen(filename));
+    if (fd == -1) {
+        perror("Failed to open file");
+        exit(1);
+    }
+
+    // Write the data directly in binary format
+    if (read(fd, test, strlen(VIKTAR_TAG) == -1)) {
+	perror("bad viktar file");
+        close(fd);
+        exit(1);
+    }
+
+    close(fd);
+
+}
+
+
+/*
+void read_viktar(char* filename) {
+	int iarch = STDIN_FILENO;
+	char buf[100] = {'\0'};
+	viktar_header_t md;
+	
+
+	if (filename != NULL ) {
+		iarch = open(filename, O_RDONLY);
+	}
+	// validate tag
+	read(iarch, buf, strlen(VIKTAR_TAG));
+	if(strncmp(buf, VIKTAR_TAG, strlen(VIKTAR_TAG)) != 0) {
+	// not a valid viktar file
+	// print snarky message and exit(1).
+		fprintf(stderr, "snarky message\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("Contents of viktar file: \"%s\"\n", filename != NULL ? filename : "stdin");
+
+	// process the archive file metadata
+	while (read(iarch, &md, sizeof(viktar_header_t )) > 0) {
+		// print archive member name
+	memset(buf, 0, 100);
+	strncpy(buf, md.viktar_name, VIKTAR_MAX_FILE_NAME_LEN);
+	printf("\tfile name: %s\n", buf);
+	lseek(iarch, md.st_size + sizeof(viktar_footer_t), SEEK_CUR);
+	}
+
+
+
+		if (filename != NULL ) {
+		close(iarch);
+		}
+
+
+}*/
