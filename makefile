@@ -11,10 +11,12 @@ TARGET = ${LOGNAME}-Lab3
 FILES = *.c makefile
 TAR = $(TARGET).tar.gz
 
+LIBS = -lmd
+
 all: viktar $(TAR)
 
 viktar: viktar.o
-	gcc $(CFLAGS) -o viktar viktar.o
+	gcc $(CFLAGS) -o viktar viktar.o $(LIBS)
 	
 viktar.o: viktar.c
 	gcc $(CFLAGS) -c viktar.c

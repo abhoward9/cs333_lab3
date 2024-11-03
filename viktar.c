@@ -1,3 +1,4 @@
+
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -9,7 +10,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <inttypes.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <md5.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -26,184 +32,23 @@ void createArchive(char * filename);
 void writeToFile(viktar_header_t person, const char *filename);
 void readFile(const char *filename);
 void strmode(mode_t mode, char * buf);
-void compute_md5(const MyStruct *obj, unsigned char output[MD5_DIGEST_LENGTH]);
+void compute_md5(char * filename, uint8_t * digest);
+void compute_data_md5(viktar_header_t *header, unsigned char *output);
 
 
-void createArchive(char * archFilename) {
-	int oarch = STDOUT_FILENO;
-	//int iarch = STDIN_FILENO;
-          struct stat sb;
-	viktar_header_t test_data; 	
-	viktar_fooder_t footer_data;
-	//char buf[100] = {'\0'};
-	//viktar_header_t md;
-	
-    char *filenames[] = {
-        "0-s.txt",
-        "1-s.txt",
-        "2-s.txt",
-        "3-s.txt",
-        "4-s.txt",
-        "5-s.txt",
-        "6-s.txt"
-    };
-	archFilename = NULL;
-	if (archFilename != NULL ) {
-		oarch = open(archFilename, O_RDONLY);
-
-	}
-    	if (write(oarch, VIKTAR_TAG, sizeof(VIKTAR_TAG)-1) == -1) {
-       		perror("Failed to write to file");
-        	close(oarch);
-        	exit(1);
-    	}
-
-for (int i = 0; i < 7; i++) {
-        printf("Filename %d: %s\n", i + 1, filenames[i]);
-	
-	
-           if (lstat(filenames[i], &sb) == -1) {
-               perror("lstat");
-               exit(EXIT_FAILURE);
-           }
-
-
-           //printf("File type:                ");
-/*
-           switch (sb.st_mode & S_IFMT) {
-           case S_IFBLK:  printf("block device\n");            break;
-           case S_IFCHR:  printf("character device\n");        break;
-           case S_IFDIR:  printf("directory\n");               break;
-           case S_IFIFO:  printf("FIFO/pipe\n");               break;
-           case S_IFLNK:  printf("symlink\n");                 break;
-           case S_IFREG:  printf("regular file\n");            break;
-           case S_IFSOCK: printf("socket\n");                  break;
-           default:       printf("unknown?\n");                break;
-           }
-*/
-	
-	//printf("I-node number:            %ju\n", (uintmax_t) sb.st_ino);
-
-strcpy(test_data.viktar_name, filenames[i]);
-test_data.st_size = sb.st_size;
-test_data.st_mode = sb.st_mode;
-test_data.st_uid = sb.st_uid;
-test_data.st_gid = sb.st_gid;
-memcpy(&test_data.st_atim, &sb.st_atime, sizeof(struct timespec));
-memcpy(&test_data.st_mtim, &sb.st_mtime, sizeof(struct timespec));
-
-    if (write(oarch, &test_data, sizeof(viktar_header_t)) == -1) {
-        perror("Failed to write to file");
-        close(oarch);
-        exit(1);
-    }
-
-	void compute_md5(&test_data, footer_data.md5sum_header);
-/*
-           printf("Mode:                     %jo (octal)\n",
-                  (uintmax_t) test_data.st_mode);
-
-           printf("Ownership:                UID=%ju   GID=%ju\n",
-                  (uintmax_t) test_data.st_uid, (uintmax_t) test_data.st_gid);
-
-           printf("File size:                %jd bytes\n",
-                  (intmax_t) test_data.st_size);
-           printf("Blocks allocated:         %jd\n",
-                  (intmax_t) sb.st_blocks);
-
-           printf("Last status change:       %s", ctime(&sb.st_ctime));
-           printf("Last file access:         %s", ctime(&test_data.st_atime));
-           printf("Last file modification:   %s", ctime(&sb.st_mtime));
-
-*/
-    }
-/*
-	if (strlen(archFilename) < 1) {
-    		iarch = open(archFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-		perror("no filename given");
-	}
-*/
-	
-
-/*
-*/
-
-    close(oarch);
-
-
-           exit(EXIT_SUCCESS);
-       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-/*	
-    if (write(iarch, &VIKTAR_TAG, sizeof(char)*strlen(VIKTAR_TAG)) == -1) {
-        perror("Failed to write to file");
-        close(iarch);
-        exit(1);
-    }
-}
-*/
-
-
-
-
-
-
-
-
-
-
-void readFile(const char *filename) {
-	char test[50];	
-    //int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1) {
-        perror("Failed to open file");
-        exit(1);
-    }
-
-    // Write the data directly in binary format
-    if (read(fd, test, 10)) {
-	printf("%s", test);
-        close(fd);
-        exit(1);
-    }
-
-    close(fd);
-
-
-}
 int main(int argc, char **argv)
 {
     int opt;
 	viktar_action_t action;
-	char str[1000] = {'\0'};
+	//char str[1000] = {'\0'};
 	char archiveFilename[1000] = {'\0'};
-	//bool show_ToC = false;
-	//bool long_ToC = false;
+    const size_t MAX_ARG_LENGTH = 1000;
+
 /*
     char input[100];
     bool doEncrypt = true;
     int shift = 3;
-    long shiftedResult;
+    
     int base;
     char *endptr;
 */
@@ -287,7 +132,7 @@ stdio as necessary for the operation.*/
               }
               else
               {
-                  strcpy(str, optarg);
+                  strcpy(archiveFilename, optarg);
 		//read_viktar(str);
               }
               break;
@@ -301,7 +146,6 @@ implementation of viktar.
 Look at the output of my solution for the format of the output.
 */
 	case 'V':
-		//printf("Validate the content");
 		break;
 //Show the help text and exit. Your help text must match mine.
 	case 'h':
@@ -324,6 +168,23 @@ diagnostics.
             abort();
         }
     }
+
+	if (optind < argc) {
+	int optCount = 0;
+	    char remaining_args[argc-optind][MAX_ARG_LENGTH];
+
+        fprintf(stderr, "\nThis is what remains on the command line:\n%x", optCount);
+
+        for(int j = optind; j < argc; j++) {
+            // If you want to do something with these values on the command line
+            //   you'll need to use something other than getopt().
+	strncpy(remaining_args[optCount],argv[j],MAX_ARG_LENGTH - 1);
+	remaining_args[optCount][MAX_ARG_LENGTH - 1] = '\0';
+            printf("\t%s\n", remaining_args[optCount]);
+optCount++;
+        }
+    }
+
     switch(action) {
         case ACTION_NONE:
             printf("No action selected.\n");
@@ -335,10 +196,10 @@ diagnostics.
             printf("Performing extract action.\n");
             break;
         case ACTION_TOC_SHORT:
-		toc(str);
+		toc(archiveFilename);
             break;
         case ACTION_TOC_LONG:
-			showLongToC(str);
+		showLongToC(archiveFilename);
             break;
         case ACTION_VALIDATE:
             printf("Performing validation.\n");
@@ -572,13 +433,280 @@ void strmode(mode_t mode, char * buf) {
 }
 
 
-void compute_md5(const MyStruct *obj, unsigned char output[MD5_DIGEST_LENGTH]) {
-    MD5_CTX md5_ctx;
-    MD5_Init(&md5_ctx);
-    MD5_Update(&md5_ctx, obj, sizeof(MyStruct));  // Update with the serialized structure
-    MD5_Final(output, &md5_ctx);                  // Finalize the MD5 hash
+void compute_md5(char * filename, uint8_t * digest) {
+
+
+
+int ifd = 0;
+    unsigned char buffer[1000] = {'\0'};
+    ssize_t bytes_read = 0;
+    MD5_CTX context;
+
+        ifd = open(filename, O_RDONLY);
+        if (ifd < 0) {
+            perror("cannot open file");
+			fprintf(stderr, "Unable to open input file %s\n", "1-tasdf");
+            exit(EXIT_FAILURE);
+        }
+        
+        MD5Init(&context);
+        for( ; (bytes_read = read(ifd, buffer, 1000)) > 0; ) {
+            MD5Update(&context, buffer, bytes_read);
+        }
+        MD5Final(digest, &context);
+        close(ifd);
+/*
+        for(int j = 0; j < MD5_DIGEST_LENGTH; ++j) {
+            printf("%02x", digest[j]);
+        }
+        printf("\n");
+ */   
+    return;
+}
+
+/*
+
+
+void compute_data_md5(const viktar_header_t * filename, uint8_t * digest) {
+    unsigned char buffer[5000] = {'\0'};
+    MD5_CTX context;
+   	//printf("compute_data: %s", filename.viktar_name); 
+	
+memcpy(buffer, filename, sizeof(viktar_header_t));  // Serialize the struct data
+
+        MD5Init(&context);
+        MD5Update(&context, (const uint8_t*)filename, sizeof(viktar_header_t));
+        MD5Final(digest, &context);
+    return;
+}
+
+*/
+
+void compute_data_md5(viktar_header_t *header, unsigned char *buffer) {
+//unsigned char *ptr = buffer;
+    MD5_CTX md5Context;
+    MD5Init(&md5Context);
+	MD5Update(&md5Context, (const uint8_t *)header, sizeof(viktar_header_t));
+
+    // Finalize the MD5 hash
+    MD5Final(buffer, &md5Context);
 }
 
 
 
 
+void createArchive(char * archiveFilename) {
+    //unsigned char md5_output[MD5_DIGEST_LENGTH];
+viktar_header_t header;
+
+
+	int oarch;
+	//int iarch = STDIN_FILENO;
+          struct stat sb;
+	viktar_footer_t footer_data;
+	//char buf[100] = {'\0'};
+	//viktar_header_t md;
+ //unsigned char md5_result[MD5_DIGEST_LENGTH];	
+    char *filenames[] = {
+        "3-s.txt",
+        "4-s.txt",
+        "5-s.txt",
+        "6-s.txt"
+    };
+
+printf("just checking");
+printf("%s", archiveFilename);
+
+	oarch = open(archiveFilename, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    if (oarch == -1) {
+        perror("Error opening file");
+	oarch = STDOUT_FILENO;
+    }
+    	if (write(oarch, VIKTAR_TAG, sizeof(VIKTAR_TAG)-1) == -1) {
+       		perror("Failed to write to file");
+        	close(oarch);
+        	exit(1);
+    	}
+
+	for (int i = 0; i < 4; i++) {
+    	uint8_t digest[MD5_DIGEST_LENGTH];
+    char readBuffer[header.st_size]; // Buffer to hold the read data
+ssize_t bytesRead;
+
+    // Open the file for reading
+   int fd =open(filenames[i], O_RDONLY);
+    if (fd == -1) {
+        perror("Error opening file");
+    }
+        printf("Filename %d: %s\n", i + 1, filenames[i]);
+    bytesRead = read(fd, readBuffer, header.st_size);
+	printf("read: %lx", bytesRead);
+    if (bytesRead == -1) {
+        perror("Error reading file");
+        close(fd);
+    }
+	
+    readBuffer[bytesRead-1] = '\0';
+
+    // Print the read content
+    printf("Read from file: %s", readBuffer);
+	
+           if (lstat(filenames[i], &sb) == -1) {
+               perror("lstat");
+               exit(EXIT_FAILURE);
+           }
+
+	
+	//printf("I-node number:            %ju\n", (uintmax_t) sb.st_ino);
+
+strncpy(header.viktar_name, filenames[i], VIKTAR_MAX_FILE_NAME_LEN);
+header.viktar_name[sizeof(header.viktar_name) - 1] = '\0'; // Ensure null termination
+
+header.st_size = sb.st_size;
+header.st_mode = sb.st_mode;
+header.st_uid = sb.st_uid;
+header.st_gid = sb.st_gid;
+header.st_atim = sb.st_atim;
+header.st_mtim = sb.st_mtim;
+
+    	if (write(oarch, &header, sizeof(viktar_header_t)-1) == -1) {
+       		perror("Failed to write to file");
+        	close(oarch);
+        	exit(1);
+    	}
+/*
+    // Read the exact number of bytes from the file
+
+        perror("Error reading file");
+    // Null-terminate the string
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	compute_data_md5(&header,digest);
+	memcpy(footer_data.md5sum_header, digest, sizeof(footer_data.md5sum_header)); // Copy the entire array
+	
+	compute_md5(filenames[i], digest);
+	memcpy(footer_data.md5sum_data, digest, sizeof(footer_data.md5sum_data)); // Copy the entire array
+
+    	if (write(oarch, &footer_data, sizeof(viktar_footer_t)-1) == -1) {
+       		perror("Failed to write to file");
+        	close(oarch);
+        	exit(1);
+    	}
+/*
+    printf("MD5 hash header: ");
+    for (int j = 0; j < MD5_DIGEST_LENGTH; j++) {
+        printf("%x", digest[j]);
+    }
+    printf("MD5 hash data: ");
+    for (int j = 0; j < MD5_DIGEST_LENGTH; j++) {
+        printf("%02x", footer_data.md5sum_data[j]);
+    }
+    printf("\n");
+           printf("Mode:                     %jo (octal)\n",
+                  (uintmax_t) test_data.st_mode);
+
+           printf("Ownership:                UID=%ju   GID=%ju\n",
+                  (uintmax_t) test_data.st_uid, (uintmax_t) test_data.st_gid);
+
+           printf("File size:                %jd bytes\n",
+                  (intmax_t) test_data.st_size);
+           printf("Blocks allocated:         %jd\n",
+                  (intmax_t) sb.st_blocks);
+
+           printf("Last status change:       %s", ctime(&sb.st_ctime));
+           printf("Last file access:         %s", ctime(&test_data.st_atime));
+           printf("Last file modification:   %s", ctime(&sb.st_mtime));
+
+*/
+    }
+/*
+	if (strlen(archFilename) < 1) {
+    		iarch = open(archFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		perror("no filename given");
+	}
+*/
+	
+
+/*
+*/
+
+    close(oarch);
+
+
+           exit(EXIT_SUCCESS);
+       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+/*	
+    if (write(iarch, &VIKTAR_TAG, sizeof(char)*strlen(VIKTAR_TAG)) == -1) {
+        perror("Failed to write to file");
+        close(iarch);
+        exit(1);
+    }
+}
+*/
+
+
+
+
+
+
+
+
+
+
+void readFile(const char *filename) {
+	char test[50];	
+    //int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        perror("Failed to open file");
+        exit(1);
+    }
+
+    // Write the data directly in binary format
+    if (read(fd, test, 10)) {
+	printf("%s", test);
+        close(fd);
+        exit(1);
+    }
+
+    close(fd);
+
+
+}
