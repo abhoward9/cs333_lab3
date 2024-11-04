@@ -3,6 +3,8 @@ CFLAGS = -Wall -Wextra -Wshadow -Wunreachable-code -Wredundant-decls \
          -Wdeclaration-after-statement -Wno-return-local-addr \
          -Wunsafe-loop-optimizations -Wuninitialized -Werror
 
+GFLAGS = -Wunreachable-code
+
 REMOTE := origin
 BRANCH := main
 MESSAGE := Automated commit of C source code and makefile
@@ -16,10 +18,10 @@ LIBS = -lmd
 all: viktar $(TAR)
 
 viktar: viktar.o
-	gcc $(CFLAGS) -o viktar viktar.o $(LIBS)
+	gcc $(GFLAGS) -o viktar viktar.o $(LIBS)
 	
 viktar.o: viktar.c
-	gcc $(CFLAGS) -c viktar.c
+	gcc $(GFLAGS) -c viktar.c
 
 
 push:
